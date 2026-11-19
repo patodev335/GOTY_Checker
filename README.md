@@ -5,17 +5,19 @@ Un cartón de bingo para la noche de los premios. Cada persona escribe sus predi
 ## Publicarlo con GitHub Pages
 
 1. Creá un repositorio público nuevo en GitHub.
-2. Subí `index.html`, `logo.png`, `1.mp3` y `wololo.mp3` a la raíz del repo (con esos nombres exactos).
+2. Subí `index.html`, `logo.png`, `1.mp3`, `bond.mp3` y `wololo.mp3` a la raíz del repo (con esos nombres exactos).
 3. Andá a **Settings → Pages**. En **Build and deployment** elegí **Deploy from a branch**, seleccioná `main` y `/ (root)`, y guardá.
 4. Al minuto el sitio queda online en `https://TU-USUARIO.github.io/NOMBRE-DEL-REPO/`.
 
 ## Cómo funciona
 
 - **Agregar predicción** completa la próxima casilla vacía (también podés tocar cualquier casilla vacía).
+- Cada predicción pide tu nombre y un color. Cada persona tiene un color único: los colores ya usados aparecen tachados y, si repetís un nombre, se reutiliza su color. El nombre se muestra abajo de la casilla en ese color.
 - Tocá una casilla para tacharla con una X roja. Tocala de nuevo para deshacer.
 - **Editar casillas** activa el modo edición: tocá una casilla para cambiarla o eliminarla.
 - El campo **Ancho** (arriba) define cuántas casillas tiene la grilla por lado, de 2 a 10.
 - Una línea cuenta solo si todas sus casillas están completas y tachadas.
+- Si tachás una casilla pegada a otra ya tachada (de lado o en diagonal), aparece "¡COMBO!" con su sonido.
 - Cada cartón se guarda en el navegador de cada persona (localStorage). No hay servidor.
 - El botón de sonido silencia el sonido de victoria.
 - Al pasar el mouse sobre el logo aparece un botón verde "?" que reproduce un sonido secreto.

@@ -176,6 +176,8 @@
 
   .cell-main {
     all: unset;
+    flex-direction: column;
+    gap: .25em;
     box-sizing: border-box;
     position: absolute;
     inset: 0;
@@ -197,6 +199,17 @@
     max-width: 100%;
     overflow-wrap: anywhere;
     hyphens: auto;
+  }
+
+  .by {
+    display: block;
+    max-width: 100%;
+    font-size: .74em;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .cell.empty {
@@ -280,6 +293,23 @@
     color: var(--ink);
   }
   .dlg-body input:focus-visible { outline: 3px solid #5B5FFF; outline-offset: 1px; }
+  .dlg-body input + .lbl, .lbl { margin-top: 14px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
+  .swatches legend { padding: 0; font-weight: 600; margin-bottom: 8px; }
+  .sw { position: relative; }
+  .sw input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; cursor: pointer; }
+  .sw span {
+    display: block;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .55);
+  }
+  .sw input:checked + span { box-shadow: 0 0 0 3px var(--paper), 0 0 0 6px var(--c); }
+  .sw input:focus-visible + span { outline: 3px solid #5B5FFF; outline-offset: 4px; }
+  .sw input:disabled { cursor: not-allowed; }
+  .sw input:disabled + span { opacity: .22; background-image: linear-gradient(45deg, transparent 45%, #fff 45% 55%, transparent 55%); }
   .hint { color: var(--ink-soft); font-size: .86rem; margin: 6px 0 0; }
   .dlg-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
 
@@ -324,8 +354,10 @@
   }
   .plate b {
     display: block;
-    font: 900 clamp(4rem, 22vw, 9rem)/1 var(--font-display);
+    font: 900 clamp(3.6rem, 17vw, 9rem)/1 var(--font-display);
   }
+  .plate span:empty { display: none; }
+  .plate:has(span:empty) { padding-bottom: .12em; }
   .plate span {
     display: block;
     font: 600 1.05rem var(--font-body);
@@ -384,9 +416,18 @@
 <dialog id="dlg" aria-labelledby="dlg-title">
   <form id="form" class="dlg-body" autocomplete="off">
     <h2 id="dlg-title">Nueva predicción</h2>
-    <label for="field">¿Qué va a pasar?</label>
+    <label for="who">Tu nombre</label>
+    <input id="who" type="text" maxlength="20" list="names" placeholder="Ej: Sofi" required>
+    <datalist id="names"></datalist>
+
+    <label class="lbl" for="field">¿Qué va a pasar?</label>
     <input id="field" type="text" maxlength="80" placeholder="El discurso del ganador se pasa de tiempo" required>
     <p class="hint">Que sea corta: 80 caracteres como máximo.</p>
+
+    <fieldset class="swatches lbl" id="swatches">
+      <legend>Tu color</legend>
+    </fieldset>
+    <p class="hint" id="color-hint" role="status"></p>
     <div class="dlg-actions">
       <button class="btn danger" id="delete" type="button">Eliminar</button>
       <button class="btn outline" id="cancel" type="button">Cancelar</button>
@@ -396,7 +437,7 @@
 </dialog>
 
 <div class="banner" id="banner" aria-live="polite">
-  <div class="plate"><b>¡BINGO!</b><span id="banner-sub"></span></div>
+  <div class="plate"><b id="banner-title">¡BINGO!</b><span id="banner-sub"></span></div>
 </div>
 
 <div class="toast" id="toast" role="status"></div>
@@ -412,9 +453,18 @@
 
   const grid = $('#grid'), statusEl = $('#status'), dlg = $('#dlg'), field = $('#field');
   const widthInput = $('#width');
+  const who = $('#who'), swatchBox = $('#swatches'), colorHint = $('#color-hint'), namesList = $('#names');
+  const PALETTE = [
+    ['#D7263D', 'Rojo'], ['#E8590C', 'Naranja'], ['#B7791F', 'Ámbar'], ['#5C940D', 'Lima'],
+    ['#2B8A3E', 'Verde'], ['#0B7285', 'Turquesa'], ['#1971C2', 'Azul'], ['#4263EB', 'Índigo'],
+    ['#7048E8', 'Violeta'], ['#C2255C', 'Magenta'], ['#7F5539', 'Marrón'], ['#495057', 'Gris']
+  ];
+  const norm = (n) => n.trim().replace(/\s+/g, ' ').toLowerCase();
   const form = $('#form'), toastEl = $('#toast'), banner = $('#banner'), bannerSub = $('#banner-sub');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  const bond = new Audio('bond.mp3');
+  bond.preload = 'auto';
   const wololo = new Audio('wololo.mp3');
   wololo.preload = 'auto';
   const audio = new Audio('1.mp3');
@@ -431,7 +481,7 @@
   let openedFrom = 'add';
 
   /* ---------- state ---------- */
-  const fresh = (n) => ({ size: n, cells: Array.from({ length: n * n }, () => ({ text: '', crossed: false })) });
+  const fresh = (n) => ({ size: n, cells: Array.from({ length: n * n }, () => ({ text: '', crossed: false, by: null })) });
 
   function load() {
     try {
@@ -439,7 +489,9 @@
       if (s && Number.isInteger(s.size) && s.size >= MIN && s.size <= MAX && Array.isArray(s.cells) && s.cells.length === s.size * s.size) {
         s.cells = s.cells.map((c) => {
           const text = String((c && c.text) || '').slice(0, 80);
-          return { text, crossed: !!(c && c.crossed && text) };
+          const by = c && c.by && typeof c.by.name === 'string' && PALETTE.some((p) => p[0] === c.by.color)
+            ? { name: c.by.name.slice(0, 20), color: c.by.color } : null;
+          return { text, crossed: !!(c && c.crossed && text), by: text ? by : null };
         });
         return s;
       }
@@ -515,8 +567,15 @@
         t.className = 'txt';
         t.textContent = c.text;
         main.appendChild(t);
+        if (c.by) {
+          const b = document.createElement('span');
+          b.className = 'by';
+          b.textContent = c.by.name;
+          b.style.color = c.by.color;
+          main.appendChild(b);
+        }
         if (!editMode) main.setAttribute('aria-pressed', String(c.crossed));
-        main.setAttribute('aria-label', c.text + (editMode ? ', editar' : c.crossed ? ', tachada' : ', pendiente'));
+        main.setAttribute('aria-label', c.text + (c.by ? ', de ' + c.by.name : '') + (editMode ? ', editar' : c.crossed ? ', tachada' : ', pendiente'));
         main.addEventListener('click', () => (editMode ? openDialog(i, 'cell') : toggle(i)));
         cell.appendChild(main);
         cell.insertAdjacentHTML('beforeend', X_SVG);
@@ -551,7 +610,9 @@
       const main = span.parentElement;
       span.style.fontSize = '';
       const cs = getComputedStyle(main);
-      const avail = main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      const by = main.querySelector('.by');
+      const extra = by ? by.offsetHeight + parseFloat(cs.rowGap || 0) : 0;
+      const avail = main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - extra;
       let size = parseFloat(getComputedStyle(span).fontSize);
       let guard = 0;
       while (span.offsetHeight > avail && size > 7 && guard++ < 40) {
@@ -573,6 +634,28 @@
     done = new Set(now.map(key));
     render({ stamp: c.crossed ? i : -1, focus: i, newLines });
     if (newLines.length) celebrate(newLines);
+    else if (c.crossed && touchesCrossed(i)) combo();
+  }
+
+  /* any crossed square next to this one, sides or corners */
+  function touchesCrossed(i) {
+    const n = state.size, r = Math.floor(i / n), col = i % n;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (!dr && !dc) continue;
+        const rr = r + dr, cc = col + dc;
+        if (rr < 0 || cc < 0 || rr >= n || cc >= n) continue;
+        if (state.cells[rr * n + cc].crossed) return true;
+      }
+    }
+    return false;
+  }
+
+  function combo() {
+    if (soundOn) {
+      try { bond.pause(); bond.currentTime = 0; bond.play().catch(() => {}); } catch (e) { /* ignore */ }
+    }
+    showBanner('¡COMBO!', '');
   }
 
   function openDialog(i, from) {
@@ -581,17 +664,65 @@
     const c = state.cells[i];
     $('#dlg-title').textContent = c.text ? 'Editar predicción' : 'Nueva predicción';
     field.value = c.text;
+    who.value = c.by ? c.by.name : lastWho;
     $('#delete').hidden = !c.text;
+    namesList.textContent = '';
+    people(-1).forEach((col, key) => {
+      const o = document.createElement('option');
+      o.value = col.name;
+      namesList.appendChild(o);
+    });
+    buildSwatches(c.by ? c.by.color : '');
     dlg.showModal();
-    field.focus();
-    field.select();
+    (who.value ? field : who).focus();
+    (who.value ? field : who).select();
   }
 
-  function commit(value) {
+  /* people = name -> {name, color}, ignoring the square being edited */
+  function people(skip) {
+    const m = new Map();
+    state.cells.forEach((c, i) => { if (i !== skip && c.text && c.by) m.set(norm(c.by.name), c.by); });
+    return m;
+  }
+
+  function buildSwatches(selected) {
+    swatchBox.querySelectorAll('.sw').forEach((n) => n.remove());
+    PALETTE.forEach(([hex, label]) => {
+      const l = document.createElement('label');
+      l.className = 'sw';
+      l.innerHTML = '<input type="radio" name="color" value="' + hex + '" aria-label="' + label + '"><span></span>';
+      l.querySelector('span').style.setProperty('--c', hex);
+      if (hex === selected) l.querySelector('input').checked = true;
+      swatchBox.appendChild(l);
+    });
+    updateSwatches();
+  }
+
+  /* lock colors: a known name keeps its own color; a new name can't take a used one */
+  function updateSwatches() {
+    const ppl = people(editing);
+    const mine = ppl.get(norm(who.value));
+    const used = new Set([...ppl.values()].map((p) => p.color));
+    const inputs = [...swatchBox.querySelectorAll('input')];
+    inputs.forEach((i) => {
+      i.disabled = mine ? i.value !== mine.color : used.has(i.value);
+      if (mine && i.value === mine.color) i.checked = true;
+      else if (i.disabled) i.checked = false;
+    });
+    colorHint.textContent = mine ? 'Este nombre ya tiene su color.'
+      : inputs.every((i) => i.disabled) ? 'No quedan colores libres.'
+      : 'Los colores tachados ya los usa otra persona.';
+  }
+  who.addEventListener('input', updateSwatches);
+  let lastWho = '';
+
+  function commit(value, by) {
     const i = editing;
     const c = state.cells[i];
     c.text = value;
+    c.by = value ? by : null;
     if (!value) c.crossed = false;
+    if (by) lastWho = by.name;
     save();
     syncDone();
     dlg.close();
@@ -600,10 +731,15 @@
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    commit(field.value.trim().replace(/\s+/g, ' '));
+    const name = who.value.trim().replace(/\s+/g, ' ');
+    const picked = swatchBox.querySelector('input:checked');
+    if (!name) { who.focus(); return; }
+    if (!picked) { colorHint.textContent = 'Elegí un color para continuar.'; swatchBox.querySelector('input:not(:disabled)')?.focus(); return; }
+    const known = people(editing).get(norm(name));
+    commit(field.value.trim().replace(/\s+/g, ' '), { name: known ? known.name : name, color: picked.value });
   });
   $('#cancel').addEventListener('click', () => dlg.close());
-  $('#delete').addEventListener('click', () => commit(''));
+  $('#delete').addEventListener('click', () => commit('', null));
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
 
   $('#add').addEventListener('click', () => {
@@ -634,7 +770,7 @@
       return;
     }
     const next = fresh(n);
-    filled.slice(0, n * n).forEach((c, i) => { next.cells[i] = { text: c.text, crossed: c.crossed }; });
+    filled.slice(0, n * n).forEach((c, i) => { next.cells[i] = { text: c.text, crossed: c.crossed, by: c.by }; });
     state = next;
     save();
     syncDone();
@@ -689,13 +825,18 @@
     if (soundOn) {
       try { audio.pause(); audio.currentTime = 0; audio.play().catch(() => {}); } catch (e) { /* ignore */ }
     }
-    bannerSub.textContent = lines.length > 1 ? lines.length + ' líneas a la vez' : lineName(lines[0]);
+    showBanner('¡BINGO!', lines.length > 1 ? lines.length + ' líneas a la vez' : lineName(lines[0]));
+    if (!reduceMotion) confetti();
+  }
+
+  function showBanner(title, sub) {
+    $('#banner-title').textContent = title;
+    bannerSub.textContent = sub;
     banner.classList.remove('show');
     void banner.offsetWidth;
     banner.classList.add('show');
     clearTimeout(bannerTimer);
     bannerTimer = setTimeout(() => banner.classList.remove('show'), 3400);
-    if (!reduceMotion) confetti();
   }
 
   const cv = $('#fx');
