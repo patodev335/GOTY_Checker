@@ -417,12 +417,11 @@
   <form id="form" class="dlg-body" autocomplete="off">
     <h2 id="dlg-title">Nueva predicción</h2>
     <label for="who">Tu nombre</label>
-    <input id="who" type="text" maxlength="20" list="names" placeholder="Ej: Sofi" required>
+    <input id="who" type="text" maxlength="20" list="names" placeholder="Ej: Pedro Picaverga" required>
     <datalist id="names"></datalist>
 
     <label class="lbl" for="field">¿Qué va a pasar?</label>
-    <input id="field" type="text" maxlength="80" placeholder="El discurso del ganador se pasa de tiempo" required>
-    <p class="hint">Que sea corta: 80 caracteres como máximo.</p>
+    <input id="field" type="text" maxlength="80" placeholder="Gana todo GTA" required>
 
     <fieldset class="swatches lbl" id="swatches">
       <legend>Tu color</legend>
@@ -711,7 +710,7 @@
     });
     colorHint.textContent = mine ? 'Este nombre ya tiene su color.'
       : inputs.every((i) => i.disabled) ? 'No quedan colores libres.'
-      : 'Los colores tachados ya los usa otra persona.';
+      : '';
   }
   who.addEventListener('input', updateSwatches);
   let lastWho = '';
