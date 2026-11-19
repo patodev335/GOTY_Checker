@@ -5,7 +5,7 @@ Un cartón de bingo para la noche de los premios. Cada persona escribe sus predi
 ## Publicarlo con GitHub Pages
 
 1. Creá un repositorio público nuevo en GitHub.
-2. Subí `index.html`, `logo.png` y `1.mp3` a la raíz del repo (con esos nombres exactos).
+2. Subí `index.html`, `logo.png`, `1.mp3` y `wololo.mp3` a la raíz del repo (con esos nombres exactos).
 3. Andá a **Settings → Pages**. En **Build and deployment** elegí **Deploy from a branch**, seleccioná `main` y `/ (root)`, y guardá.
 4. Al minuto el sitio queda online en `https://TU-USUARIO.github.io/NOMBRE-DEL-REPO/`.
 
@@ -18,3 +18,4 @@ Un cartón de bingo para la noche de los premios. Cada persona escribe sus predi
 - Una línea cuenta solo si todas sus casillas están completas y tachadas.
 - Cada cartón se guarda en el navegador de cada persona (localStorage). No hay servidor.
 - El botón de sonido silencia el sonido de victoria.
+- Al pasar el mouse sobre el logo aparece un botón verde "?" que reproduce un sonido secreto.

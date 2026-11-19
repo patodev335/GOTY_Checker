@@ -52,11 +52,39 @@
   }
 
   h1 { margin: 0; line-height: 0; }
-  .logo {
+  .logo-wrap {
+    position: relative;
     display: block;
     width: clamp(190px, 52vw, 340px);
-    height: auto;
   }
+  .logo {
+    display: block;
+    width: 100%;
+    height: auto;
+    transition: opacity .25s;
+  }
+  .secret {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    transform: translate(-50%, -50%);
+    border: 0;
+    border-radius: 50%;
+    background: #2FB35A;
+    color: #fff;
+    font: 800 1.3rem/1 var(--font-body);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .25s, background .15s;
+  }
+  .secret:hover { background: #3FCB6F; }
+  .secret:active { background: #23964A; }
+  .secret:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .logo-wrap:hover .logo, .logo-wrap:focus-within .logo { opacity: 0; }
+  .logo-wrap:hover .secret, .logo-wrap:focus-within .secret { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .logo, .secret { transition: none; } }
 
   .actions {
     display: flex;
@@ -328,7 +356,10 @@
 
 <main class="page">
   <div class="top">
-    <h1><img class="logo" src="logo.png" alt="The Game Awards: Bingo" width="1780" height="606"></h1>
+    <h1 class="logo-wrap">
+      <img class="logo" src="logo.png" alt="The Game Awards: Bingo" width="1780" height="606">
+      <button class="secret" id="secret" type="button" aria-label="Reproducir sonido secreto">?</button>
+    </h1>
     <button class="btn ghost small" id="sound" type="button" aria-pressed="true">Sonido activado</button>
   </div>
 
@@ -384,6 +415,8 @@
   const form = $('#form'), toastEl = $('#toast'), banner = $('#banner'), bannerSub = $('#banner-sub');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  const wololo = new Audio('wololo.mp3');
+  wololo.preload = 'auto';
   const audio = new Audio('1.mp3');
   audio.preload = 'auto';
 
@@ -623,6 +656,10 @@
     save();
     syncDone();
     render();
+  });
+
+  $('#secret').addEventListener('click', () => {
+    try { wololo.currentTime = 0; wololo.play().catch(() => {}); } catch (e) { /* ignore */ }
   });
 
   const soundBtn = $('#sound');
