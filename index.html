@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GOTY Bingo</title>
+<title>Bingo de los GOTY</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -51,28 +51,43 @@
     gap: 12px;
   }
 
-  h1 {
-    margin: 0;
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: clamp(3.2rem, 13vw, 6rem);
-    line-height: .88;
-    letter-spacing: -.01em;
-  }
-
-  .intro {
-    margin: 14px 0 0;
-    max-width: 44ch;
-    color: #B9BDDB;
-    font-size: 1.02rem;
+  h1 { margin: 0; line-height: 0; }
+  .logo {
+    display: block;
+    width: clamp(190px, 52vw, 340px);
+    height: auto;
   }
 
   .actions {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 10px;
     margin: 22px 0 18px;
   }
+
+  /* grid width input */
+  .width {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    color: #B9BDDB;
+    font-size: .95rem;
+    font-weight: 600;
+  }
+  .width input {
+    width: 4.2rem;
+    min-height: 44px;
+    font: 600 1rem var(--font-body);
+    text-align: center;
+    padding: .4rem .3rem;
+    border-radius: 8px;
+    border: 1.5px solid #454A83;
+    background: transparent;
+    color: var(--paper);
+  }
+  .width input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
   /* buttons */
   .btn {
@@ -111,8 +126,13 @@
     gap: clamp(4px, 1.2vw, 10px);
     width: 100%;
   }
-  .grid[data-size="4"] { --fs: clamp(.74rem, 3.2vw, 1.15rem); }
+  .grid[data-size="2"] { --fs: clamp(1.1rem, 6vw, 1.9rem); }
   .grid[data-size="3"] { --fs: clamp(.9rem, 4.4vw, 1.5rem); }
+  .grid[data-size="4"] { --fs: clamp(.74rem, 3.2vw, 1.15rem); }
+  .grid[data-size="6"], .grid[data-size="7"], .grid[data-size="8"] { --fs: clamp(.55rem, 1.9vw, .8rem); }
+  .grid[data-size="9"], .grid[data-size="10"] { --fs: clamp(.5rem, 1.6vw, .7rem); }
+  .grid[data-size="7"] .cell-main, .grid[data-size="8"] .cell-main,
+  .grid[data-size="9"] .cell-main, .grid[data-size="10"] .cell-main { padding: 2px; }
 
   .grid.editing { outline: 2px dashed var(--gold); outline-offset: 6px; }
 
@@ -157,6 +177,7 @@
     border: 1.5px dashed #3A3F78;
   }
   .cell.empty .cell-main { color: #8084AE; font-size: 1.6rem; font-weight: 400; }
+  .grid[data-size="8"] .cell.empty .cell-main, .grid[data-size="9"] .cell.empty .cell-main, .grid[data-size="10"] .cell.empty .cell-main { font-size: 1rem; }
   .cell.empty:hover { background: #171A3A; }
 
   .cell.filled:hover { background: #fff; }
@@ -207,7 +228,6 @@
     align-items: center;
     gap: 8px;
   }
-  .seg { display: flex; gap: 6px; margin-right: auto; }
 
   /* dialog */
   dialog {
@@ -308,15 +328,16 @@
 
 <main class="page">
   <div class="top">
-    <h1>GOTY Bingo</h1>
-    <button class="btn ghost small" id="sound" type="button" aria-pressed="true">Sound on</button>
+    <h1><img class="logo" src="logo.png" alt="The Game Awards: Bingo" width="1780" height="606"></h1>
+    <button class="btn ghost small" id="sound" type="button" aria-pressed="true">Sonido activado</button>
   </div>
 
-  <p class="intro">Write what you think will happen at the awards. When one comes true, tap it to cross it off. Get a full row, column or diagonal and you win.</p>
-
   <div class="actions">
-    <button class="btn primary" id="add" type="button">Add prediction</button>
-    <button class="btn ghost" id="edit" type="button" aria-pressed="false">Edit squares</button>
+    <button class="btn primary" id="add" type="button">Agregar predicción</button>
+    <button class="btn ghost" id="edit" type="button" aria-pressed="false">Editar casillas</button>
+    <label class="width">Ancho
+      <input id="width" type="number" inputmode="numeric" min="2" max="10" step="1" aria-label="Ancho de la grilla (casillas por fila)">
+    </label>
   </div>
 
   <div class="grid" id="grid" aria-label="Bingo card"></div>
@@ -324,32 +345,27 @@
   <p class="status" id="status" role="status"></p>
 
   <div class="controls">
-    <div class="seg" role="group" aria-label="Grid size">
-      <button class="btn ghost small" type="button" data-size="3">3×3</button>
-      <button class="btn ghost small" type="button" data-size="4">4×4</button>
-      <button class="btn ghost small" type="button" data-size="5">5×5</button>
-    </div>
-    <button class="btn ghost small" id="clear" type="button">Clear crosses</button>
-    <button class="btn ghost small" id="reset" type="button">Reset card</button>
+    <button class="btn ghost small" id="clear" type="button">Borrar cruces</button>
+    <button class="btn ghost small" id="reset" type="button">Reiniciar cartón</button>
   </div>
 </main>
 
 <dialog id="dlg" aria-labelledby="dlg-title">
   <form id="form" class="dlg-body" autocomplete="off">
-    <h2 id="dlg-title">New prediction</h2>
-    <label for="field">What will happen?</label>
-    <input id="field" type="text" maxlength="80" placeholder="The winner's speech runs over time" required>
-    <p class="hint">Keep it short, 80 characters max.</p>
+    <h2 id="dlg-title">Nueva predicción</h2>
+    <label for="field">¿Qué va a pasar?</label>
+    <input id="field" type="text" maxlength="80" placeholder="El discurso del ganador se pasa de tiempo" required>
+    <p class="hint">Que sea corta: 80 caracteres como máximo.</p>
     <div class="dlg-actions">
-      <button class="btn danger" id="delete" type="button">Delete</button>
-      <button class="btn outline" id="cancel" type="button">Cancel</button>
-      <button class="btn solid" type="submit">Save</button>
+      <button class="btn danger" id="delete" type="button">Eliminar</button>
+      <button class="btn outline" id="cancel" type="button">Cancelar</button>
+      <button class="btn solid" type="submit">Guardar</button>
     </div>
   </form>
 </dialog>
 
 <div class="banner" id="banner" aria-live="polite">
-  <div class="plate"><b>BINGO!</b><span id="banner-sub"></span></div>
+  <div class="plate"><b>¡BINGO!</b><span id="banner-sub"></span></div>
 </div>
 
 <div class="toast" id="toast" role="status"></div>
@@ -359,10 +375,12 @@
   'use strict';
 
   const KEY = 'goty-bingo-v1';
+  const MIN = 2, MAX = 10;
   const SOUND_KEY = 'goty-bingo-sound';
   const $ = (s) => document.querySelector(s);
 
   const grid = $('#grid'), statusEl = $('#status'), dlg = $('#dlg'), field = $('#field');
+  const widthInput = $('#width');
   const form = $('#form'), toastEl = $('#toast'), banner = $('#banner'), bannerSub = $('#banner-sub');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -385,7 +403,7 @@
   function load() {
     try {
       const s = JSON.parse(store.get(KEY));
-      if (s && [3, 4, 5].includes(s.size) && Array.isArray(s.cells) && s.cells.length === s.size * s.size) {
+      if (s && Number.isInteger(s.size) && s.size >= MIN && s.size <= MAX && Array.isArray(s.cells) && s.cells.length === s.size * s.size) {
         s.cells = s.cells.map((c) => {
           const text = String((c && c.text) || '').slice(0, 80);
           return { text, crossed: !!(c && c.crossed && text) };
@@ -417,8 +435,8 @@
 
   function lineName(l) {
     const n = state.size, d = l[1] - l[0];
-    if (d === 1) return 'Row ' + (Math.floor(l[0] / n) + 1);
-    if (d === n) return 'Column ' + (l[0] + 1);
+    if (d === 1) return 'Fila ' + (Math.floor(l[0] / n) + 1);
+    if (d === n) return 'Columna ' + (l[0] + 1);
     return 'Diagonal';
   }
 
@@ -465,13 +483,13 @@
         t.textContent = c.text;
         main.appendChild(t);
         if (!editMode) main.setAttribute('aria-pressed', String(c.crossed));
-        main.setAttribute('aria-label', c.text + (editMode ? ', edit' : c.crossed ? ', crossed off' : ', not yet'));
+        main.setAttribute('aria-label', c.text + (editMode ? ', editar' : c.crossed ? ', tachada' : ', pendiente'));
         main.addEventListener('click', () => (editMode ? openDialog(i, 'cell') : toggle(i)));
         cell.appendChild(main);
         cell.insertAdjacentHTML('beforeend', X_SVG);
       } else {
         main.textContent = '+';
-        main.setAttribute('aria-label', 'Add a prediction to square ' + (i + 1));
+        main.setAttribute('aria-label', 'Agregar una predicción a la casilla ' + (i + 1));
         main.addEventListener('click', () => openDialog(i, 'cell'));
         cell.appendChild(main);
       }
@@ -481,11 +499,10 @@
     const filled = state.cells.filter((c) => c.text).length;
     const crossed = state.cells.filter((c) => c.crossed).length;
     statusEl.textContent = editMode
-      ? 'Tap a square to change or delete it.'
-      : filled + ' of ' + state.cells.length + ' squares filled, ' + crossed + ' crossed off';
+      ? 'Tocá una casilla para cambiarla o eliminarla.'
+      : filled + ' de ' + state.cells.length + ' casillas completas, ' + crossed + ' tachadas';
 
-    document.querySelectorAll('[data-size]').forEach((b) =>
-      b.setAttribute('aria-pressed', String(Number(b.dataset.size) === state.size)));
+    if (document.activeElement !== widthInput) widthInput.value = state.size;
     $('#edit').setAttribute('aria-pressed', String(editMode));
 
     requestAnimationFrame(fit);
@@ -529,7 +546,7 @@
     editing = i;
     openedFrom = from;
     const c = state.cells[i];
-    $('#dlg-title').textContent = c.text ? 'Edit prediction' : 'New prediction';
+    $('#dlg-title').textContent = c.text ? 'Editar predicción' : 'Nueva predicción';
     field.value = c.text;
     $('#delete').hidden = !c.text;
     dlg.showModal();
@@ -558,21 +575,31 @@
 
   $('#add').addEventListener('click', () => {
     const i = state.cells.findIndex((c) => !c.text);
-    if (i < 0) { showToast('The card is full. Delete a square or pick a bigger grid.'); return; }
+    if (i < 0) { showToast('El cartón está lleno. Eliminá una casilla o agrandá la grilla.'); return; }
     openDialog(i, 'add');
   });
 
   $('#edit').addEventListener('click', () => { editMode = !editMode; render(); });
 
-  document.querySelectorAll('.seg [data-size]').forEach((b) =>
-    b.addEventListener('click', () => resize(Number(b.dataset.size))));
+  /* grid width: applies when the field is committed (change/Enter/blur) */
+  widthInput.addEventListener('change', () => {
+    const v = Math.round(Number(widthInput.value));
+    if (!Number.isFinite(v) || widthInput.value === '') { widthInput.value = state.size; return; }
+    const n = Math.min(MAX, Math.max(MIN, v));
+    widthInput.value = n;
+    resize(n);
+  });
+  widthInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') widthInput.blur(); });
 
   function resize(n) {
     if (n === state.size) return;
     const filled = state.cells.filter((c) => c.text);
     if (filled.length > n * n &&
-        !confirm('A ' + n + '×' + n + ' grid only fits ' + n * n + ' predictions. The last ' +
-                 (filled.length - n * n) + ' will be removed. Continue?')) return;
+        !confirm('Una grilla de ' + n + '×' + n + ' solo entra ' + n * n + ' predicciones. Se van a eliminar las últimas ' +
+                 (filled.length - n * n) + '. ¿Continuar?')) {
+      widthInput.value = state.size;
+      return;
+    }
     const next = fresh(n);
     filled.slice(0, n * n).forEach((c, i) => { next.cells[i] = { text: c.text, crossed: c.crossed }; });
     state = next;
@@ -583,7 +610,7 @@
 
   $('#clear').addEventListener('click', () => {
     if (!state.cells.some((c) => c.crossed)) return;
-    if (!confirm('Remove every cross? Your predictions stay.')) return;
+    if (!confirm('¿Quitar todas las cruces? Tus predicciones se mantienen.')) return;
     state.cells.forEach((c) => { c.crossed = false; });
     save();
     syncDone();
@@ -591,7 +618,7 @@
   });
 
   $('#reset').addEventListener('click', () => {
-    if (!confirm('Delete every prediction and start a blank card?')) return;
+    if (!confirm('¿Borrar todas las predicciones y empezar un cartón vacío?')) return;
     state = fresh(state.size);
     save();
     syncDone();
@@ -600,7 +627,7 @@
 
   const soundBtn = $('#sound');
   function paintSound() {
-    soundBtn.textContent = soundOn ? 'Sound on' : 'Sound off';
+    soundBtn.textContent = soundOn ? 'Sonido activado' : 'Sonido apagado';
     soundBtn.setAttribute('aria-pressed', String(soundOn));
   }
   soundBtn.addEventListener('click', () => {
@@ -625,7 +652,7 @@
     if (soundOn) {
       try { audio.pause(); audio.currentTime = 0; audio.play().catch(() => {}); } catch (e) { /* ignore */ }
     }
-    bannerSub.textContent = lines.length > 1 ? lines.length + ' lines at once' : lineName(lines[0]);
+    bannerSub.textContent = lines.length > 1 ? lines.length + ' líneas a la vez' : lineName(lines[0]);
     banner.classList.remove('show');
     void banner.offsetWidth;
     banner.classList.add('show');

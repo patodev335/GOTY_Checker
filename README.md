@@ -1,19 +1,20 @@
-# GOTY Bingo
+# Bingo de los GOTY
 
-A one-page bingo card for the awards night. Everyone writes their own predictions, then crosses them off when they happen. A full row, column or diagonal plays the win animation and the sound.
+Un cartón de bingo para la noche de los premios. Cada persona escribe sus predicciones y las tacha cuando se cumplen. Una fila, columna o diagonal completa activa la animación y el sonido de victoria.
 
-## Put it online with GitHub Pages
+## Publicarlo con GitHub Pages
 
-1. Create a new public repository on GitHub.
-2. Upload `index.html` and `1.mp3` to the root of the repo (keep the file name `1.mp3`).
-3. Go to **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, pick `main` and `/ (root)`, then save.
-4. After a minute your site is live at `https://YOUR-USERNAME.github.io/REPO-NAME/`. Send that link to your friends.
+1. Creá un repositorio público nuevo en GitHub.
+2. Subí `index.html`, `logo.png` y `1.mp3` a la raíz del repo (con esos nombres exactos).
+3. Andá a **Settings → Pages**. En **Build and deployment** elegí **Deploy from a branch**, seleccioná `main` y `/ (root)`, y guardá.
+4. Al minuto el sitio queda online en `https://TU-USUARIO.github.io/NOMBRE-DEL-REPO/`.
 
-## How it works
+## Cómo funciona
 
-- **Add prediction** fills the next empty square. You can also tap any empty square.
-- Tap a filled square to cross it off with a red X. Tap again to undo.
-- **Edit squares** turns on edit mode: tap a square to change or delete it.
-- Pick 3×3, 4×4 or 5×5. A line only counts when every square in it is filled and crossed.
-- Each person's card is saved in their own browser (localStorage), so every friend has their own card on their own device. There is no server.
-- The sound button mutes the win sound.
+- **Agregar predicción** completa la próxima casilla vacía (también podés tocar cualquier casilla vacía).
+- Tocá una casilla para tacharla con una X roja. Tocala de nuevo para deshacer.
+- **Editar casillas** activa el modo edición: tocá una casilla para cambiarla o eliminarla.
+- El campo **Ancho** (arriba) define cuántas casillas tiene la grilla por lado, de 2 a 10.
+- Una línea cuenta solo si todas sus casillas están completas y tachadas.
+- Cada cartón se guarda en el navegador de cada persona (localStorage). No hay servidor.
+- El botón de sonido silencia el sonido de victoria.
