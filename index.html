@@ -94,6 +94,11 @@
     margin: 22px 0 18px;
   }
 
+  .audio { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .vol { display: flex; align-items: center; gap: 8px; color: #B9BDDB; font-size: .85rem; font-weight: 600; }
+  .vol input { width: 110px; accent-color: var(--gold); cursor: pointer; }
+  .vol input:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+
   /* grid width input */
   .width {
     display: flex;
@@ -392,7 +397,12 @@
       <img class="logo" src="logo.png" alt="The Game Awards: Bingo" width="1780" height="606">
       <button class="secret" id="secret" type="button" aria-label="Reproducir sonido secreto">?</button>
     </h1>
-    <button class="btn ghost small" id="sound" type="button" aria-pressed="true">Sonido activado</button>
+    <div class="audio">
+      <button class="btn ghost small" id="sound" type="button" aria-pressed="true">Sonido activado</button>
+      <label class="vol">Volumen
+        <input id="vol" type="range" min="0" max="100" step="1" value="70" aria-label="Volumen">
+      </label>
+    </div>
   </div>
 
   <div class="actions">
@@ -445,6 +455,10 @@
 (() => {
   'use strict';
 
+  /* Base de datos compartida (Firebase Realtime Database). Pegá acá la URL de tu base,
+     por ejemplo 'https://mi-proyecto-default-rtdb.firebaseio.com'. Vacío = cada uno guarda solo en su navegador. */
+  const FIREBASE_URL = '';
+  const ROOM = (new URLSearchParams(location.search).get('sala') || 'principal').replace(/[^\w-]/g, '').slice(0, 40) || 'principal';
   const KEY = 'goty-bingo-v1';
   const MIN = 2, MAX = 10;
   const SOUND_KEY = 'goty-bingo-sound';
@@ -482,24 +496,97 @@
   /* ---------- state ---------- */
   const fresh = (n) => ({ size: n, cells: Array.from({ length: n * n }, () => ({ text: '', crossed: false, by: null })) });
 
+  /* turns untrusted data (localStorage or the shared DB) into a valid state, or null */
+  function clean(raw) {
+    if (!raw || !Number.isInteger(raw.size) || raw.size < MIN || raw.size > MAX) return null;
+    const n = raw.size;
+    const src = raw.cells || {}; // Firebase may return an array or an object keyed by index
+    const cells = Array.from({ length: n * n }, (_, i) => {
+      const c = src[i];
+      const text = String((c && c.text) || '').slice(0, 80);
+      const by = c && c.by && typeof c.by.name === 'string' && PALETTE.some((p) => p[0] === c.by.color)
+        ? { name: c.by.name.slice(0, 20), color: c.by.color } : null;
+      return { text, crossed: !!(c && c.crossed && text), by: text ? by : null };
+    });
+    return { size: n, cells };
+  }
+
   function load() {
-    try {
-      const s = JSON.parse(store.get(KEY));
-      if (s && Number.isInteger(s.size) && s.size >= MIN && s.size <= MAX && Array.isArray(s.cells) && s.cells.length === s.size * s.size) {
-        s.cells = s.cells.map((c) => {
-          const text = String((c && c.text) || '').slice(0, 80);
-          const by = c && c.by && typeof c.by.name === 'string' && PALETTE.some((p) => p[0] === c.by.color)
-            ? { name: c.by.name.slice(0, 20), color: c.by.color } : null;
-          return { text, crossed: !!(c && c.crossed && text), by: text ? by : null };
-        });
-        return s;
-      }
-    } catch (e) { /* fall through */ }
-    return fresh(5);
+    try { return clean(JSON.parse(store.get(KEY))) || fresh(5); } catch (e) { return fresh(5); }
   }
 
   let state = load();
-  const save = () => store.set(KEY, JSON.stringify(state));
+
+  /* ---------- shared database ---------- */
+  const DB = FIREBASE_URL.replace(/\/$/, '');
+  const dbUrl = (path) => DB + '/bingo/' + ROOM + path + '.json';
+  let pending = 0, writeSeq = 0, lastRemote = null, errorShown = false;
+
+  const toRemote = (st) => {
+    const cells = {};
+    st.cells.forEach((c, i) => { if (c.text) cells[i] = { text: c.text, crossed: c.crossed, by: c.by }; });
+    return { size: st.size, cells };
+  };
+
+  async function dbPut(path, value) {
+    const res = await fetch(dbUrl(path), { method: 'PUT', body: JSON.stringify(value) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+  }
+
+  /* i = one square changed; undefined = the whole card changed */
+  async function pushRemote(i) {
+    writeSeq++; pending++;
+    try {
+      if (i === undefined) await dbPut('', toRemote(state));
+      else {
+        const c = state.cells[i];
+        await dbPut('/cells/' + i, c.text ? { text: c.text, crossed: c.crossed, by: c.by } : null);
+        await dbPut('/size', state.size);
+      }
+      errorShown = false;
+    } catch (e) { netError(); }
+    pending--;
+  }
+
+  function netError() {
+    if (errorShown) return;
+    errorShown = true;
+    showToast('Sin conexión con el cartón compartido. Reintentando…');
+  }
+
+  async function pull(first) {
+    if (!DB || pending) return;
+    const seq = writeSeq;
+    try {
+      const res = await fetch(dbUrl(''), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      errorShown = false;
+      if (pending || seq !== writeSeq || text === lastRemote) return;
+      lastRemote = text;
+      const data = JSON.parse(text);
+      const next = clean(data);
+      if (!next) {
+        /* empty room: publish what this browser already has */
+        if (state.cells.some((c) => c.text)) pushRemote();
+        return;
+      }
+      if (JSON.stringify(toRemote(next)) === JSON.stringify(toRemote(state))) return;
+      state = next;
+      store.set(KEY, JSON.stringify(state));
+      const now = completeLines();
+      const newLines = first ? [] : now.filter((l) => !done.has(key(l)));
+      done = new Set(now.map(key));
+      render({ newLines });
+      if (newLines.length) celebrate(newLines);
+    } catch (e) { netError(); }
+  }
+
+  const save = (i) => {
+    store.set(KEY, JSON.stringify(state));
+    lastRemote = null;
+    if (DB) pushRemote(i);
+  };
 
   /* ---------- lines ---------- */
   function allLines(n) {
@@ -627,7 +714,7 @@
   function toggle(i) {
     const c = state.cells[i];
     c.crossed = !c.crossed;
-    save();
+    save(i);
     const now = completeLines();
     const newLines = now.filter((l) => !done.has(key(l)));
     done = new Set(now.map(key));
@@ -722,7 +809,7 @@
     c.by = value ? by : null;
     if (!value) c.crossed = false;
     if (by) lastWho = by.name;
-    save();
+    save(i);
     syncDone();
     dlg.close();
     render({ focus: openedFrom === 'cell' ? i : -1 });
@@ -796,6 +883,22 @@
   $('#secret').addEventListener('click', () => {
     try { wololo.currentTime = 0; wololo.play().catch(() => {}); } catch (e) { /* ignore */ }
   });
+
+  /* volume: one slider for every sound, remembered per browser */
+  const VOL_KEY = 'goty-bingo-volume';
+  const volInput = $('#vol');
+  const savedVol = parseFloat(store.get(VOL_KEY));
+  let volume = Number.isFinite(savedVol) ? Math.min(1, Math.max(0, savedVol)) : 0.7;
+  function applyVolume() {
+    [audio, bond, wololo].forEach((a) => { a.volume = volume; });
+    volInput.value = Math.round(volume * 100);
+  }
+  volInput.addEventListener('input', () => { volume = Number(volInput.value) / 100; applyVolume(); });
+  volInput.addEventListener('change', () => {
+    store.set(VOL_KEY, String(volume));
+    if (soundOn && volume > 0) { try { wololo.currentTime = 0; wololo.play().catch(() => {}); } catch (e) { /* ignore */ } }
+  });
+  applyVolume();
 
   const soundBtn = $('#sound');
   function paintSound() {
@@ -887,6 +990,11 @@
   }
 
   render();
+  if (DB) {
+    pull(true);
+    setInterval(pull, 3000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); });
+  }
 })();
 </script>
 </body>

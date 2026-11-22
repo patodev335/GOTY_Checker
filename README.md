@@ -18,6 +18,19 @@ Un cartón de bingo para la noche de los premios. Cada persona escribe sus predi
 - El campo **Ancho** (arriba) define cuántas casillas tiene la grilla por lado, de 2 a 10.
 - Una línea cuenta solo si todas sus casillas están completas y tachadas.
 - Si tachás una casilla pegada a otra ya tachada (de lado o en diagonal), aparece "¡COMBO!" con su sonido.
-- Cada cartón se guarda en el navegador de cada persona (localStorage). No hay servidor.
+- Sin configurar nada, cada cartón se guarda solo en el navegador de cada persona. Para que **todos compartan el mismo cartón** (con sus colores únicos), seguí los pasos de abajo.
 - El botón de sonido silencia el sonido de victoria.
+- El control de volumen ajusta todos los sonidos (ya vienen normalizados al mismo nivel) y se recuerda en cada navegador. En iPhone/iPad el volumen se controla con los botones del teléfono.
 - Al pasar el mouse sobre el logo aparece un botón verde "?" que reproduce un sonido secreto.
+
+## Cartón compartido entre amigos (Firebase, gratis)
+
+1. Entrá a https://console.firebase.google.com y creá un proyecto (podés desactivar Analytics).
+2. En el menú **Build → Realtime Database**, creá una base de datos. Elegí **modo de prueba** (test mode).
+3. Copiá la URL de la base (algo como `https://mi-proyecto-default-rtdb.firebaseio.com`).
+4. Abrí `index.html`, buscá la línea `const FIREBASE_URL = '';` y pegá la URL entre las comillas.
+5. Subí el sitio a GitHub Pages. Todos los que abran el link ven y editan el mismo cartón, y se actualiza solo cada pocos segundos.
+
+Notas:
+- Para tener varios cartones distintos, usá `?sala=nombre` al final del link (por ejemplo `.../?sala=amigos`).
+- El modo de prueba de Firebase deja la base abierta a cualquiera que tenga la URL y vence a los 30 días. Para después, cambiá las reglas en la pestaña **Reglas**.
