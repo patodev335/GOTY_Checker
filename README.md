@@ -20,7 +20,7 @@ Un cartón de bingo para la noche de los premios. Cada persona escribe sus predi
 - Si tachás una casilla pegada a otra ya tachada (de lado o en diagonal), aparece "¡COMBO!" con su sonido.
 - Sin configurar nada, cada cartón se guarda solo en el navegador de cada persona. Para que **todos compartan el mismo cartón** (con sus colores únicos), seguí los pasos de abajo.
 - El botón de sonido silencia el sonido de victoria.
-- El control de volumen ajusta todos los sonidos (ya vienen normalizados al mismo nivel) y se recuerda en cada navegador. En iPhone/iPad el volumen se controla con los botones del teléfono.
+- El control de volumen va de 0 a 300 % (se puede amplificar, con un limitador para evitar distorsión), ajusta todos los sonidos y se recuerda en cada navegador. Al soltarlo suena un "bloop" de gota para mostrar el nivel. Si suenan dos sonidos a la vez, solo sobrevive el último. En iPhone/iPad el volumen del teléfono sigue mandando.
 - Al pasar el mouse sobre el logo aparece un botón verde "?" que reproduce un sonido secreto.
 
 ## Cartón compartido entre amigos (Firebase, gratis)

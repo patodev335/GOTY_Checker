@@ -96,6 +96,7 @@
 
   .audio { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
   .vol { display: flex; align-items: center; gap: 8px; color: #B9BDDB; font-size: .85rem; font-weight: 600; }
+  .vol output { min-width: 3.1em; text-align: right; font-variant-numeric: tabular-nums; }
   .vol input { width: 110px; accent-color: var(--gold); cursor: pointer; }
   .vol input:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
 
@@ -400,7 +401,8 @@
     <div class="audio">
       <button class="btn ghost small" id="sound" type="button" aria-pressed="true">Sonido activado</button>
       <label class="vol">Volumen
-        <input id="vol" type="range" min="0" max="100" step="1" value="70" aria-label="Volumen">
+        <input id="vol" type="range" min="0" max="300" step="5" value="150" aria-label="Volumen">
+        <output id="vol-out" for="vol">150%</output>
       </label>
     </div>
   </div>
@@ -476,12 +478,92 @@
   const form = $('#form'), toastEl = $('#toast'), banner = $('#banner'), bannerSub = $('#banner-sub');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const bond = new Audio('bond.mp3');
-  bond.preload = 'auto';
-  const wololo = new Audio('wololo.mp3');
-  wololo.preload = 'auto';
-  const audio = new Audio('1.mp3');
-  audio.preload = 'auto';
+  /* ---------- sound engine ----------
+     Web Audio lets the volume go above 100% (a limiter keeps it from distorting).
+     Only one sound plays at a time: starting a new one stops the previous one.
+     If the files can't be decoded (e.g. opened from file://), it falls back to plain <audio>. */
+  const FILES = { win: '1.mp3', combo: 'bond.mp3', secret: 'wololo.mp3' };
+  const VOL_KEY = 'goty-bingo-gain';
+  const savedVol = parseFloat(store0('goty-bingo-gain'));
+  function store0(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  let gain = Number.isFinite(savedVol) ? Math.min(3, Math.max(0, savedVol)) : 1.5;
+
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let actx = null, master = null;
+  const buffers = {};
+  const fallback = {};
+  let current = null;
+
+  try {
+    actx = new AC();
+    master = actx.createGain();
+    master.gain.value = gain;
+    const limiter = actx.createDynamicsCompressor();
+    limiter.threshold.value = -2;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.001;
+    limiter.release.value = 0.12;
+    master.connect(limiter);
+    limiter.connect(actx.destination);
+    Object.entries(FILES).forEach(([name, url]) => {
+      fetch(url).then((r) => r.arrayBuffer()).then((b) => actx.decodeAudioData(b))
+        .then((buf) => { buffers[name] = buf; }).catch(() => { /* use fallback */ });
+    });
+  } catch (e) { actx = null; }
+
+  Object.entries(FILES).forEach(([name, url]) => {
+    const a = new Audio(url);
+    a.preload = 'auto';
+    fallback[name] = a;
+  });
+
+  function stopAll() {
+    if (current) { try { current.stop(); } catch (e) { /* ignore */ } current = null; }
+  }
+
+  function play(name) {
+    stopAll();
+    try {
+      if (actx && buffers[name]) {
+        actx.resume();
+        const src = actx.createBufferSource();
+        src.buffer = buffers[name];
+        src.connect(master);
+        src.start();
+        current = { stop: () => src.stop() };
+      } else {
+        const a = fallback[name];
+        a.currentTime = 0;
+        a.volume = Math.min(1, gain);
+        a.play().catch(() => {});
+        current = { stop: () => a.pause() };
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  /* short water-drop "bloop", used to preview the volume */
+  function drop() {
+    stopAll();
+    if (!actx) return;
+    try {
+      actx.resume();
+      const t = actx.currentTime;
+      const osc = actx.createOscillator();
+      const env = actx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, t);
+      osc.frequency.exponentialRampToValueAtTime(1500, t + 0.09);
+      env.gain.setValueAtTime(0.0001, t);
+      env.gain.exponentialRampToValueAtTime(0.7, t + 0.012);
+      env.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+      osc.connect(env);
+      env.connect(master);
+      osc.start(t);
+      osc.stop(t + 0.22);
+      current = { stop: () => { try { osc.stop(); } catch (e) { /* ignore */ } } };
+    } catch (e) { /* ignore */ }
+  }
 
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -739,7 +821,7 @@
 
   function combo() {
     if (soundOn) {
-      try { bond.pause(); bond.currentTime = 0; bond.play().catch(() => {}); } catch (e) { /* ignore */ }
+      play('combo');
     }
     showBanner('¡COMBO!', '');
   }
@@ -880,23 +962,19 @@
     render();
   });
 
-  $('#secret').addEventListener('click', () => {
-    try { wololo.currentTime = 0; wololo.play().catch(() => {}); } catch (e) { /* ignore */ }
-  });
+  $('#secret').addEventListener('click', () => play('secret'));
 
-  /* volume: one slider for every sound, remembered per browser */
-  const VOL_KEY = 'goty-bingo-volume';
-  const volInput = $('#vol');
-  const savedVol = parseFloat(store.get(VOL_KEY));
-  let volume = Number.isFinite(savedVol) ? Math.min(1, Math.max(0, savedVol)) : 0.7;
+  /* volume: one slider for every sound, 0-300%, remembered per browser */
+  const volInput = $('#vol'), volOut = $('#vol-out');
   function applyVolume() {
-    [audio, bond, wololo].forEach((a) => { a.volume = volume; });
-    volInput.value = Math.round(volume * 100);
+    if (master) master.gain.value = gain;
+    volInput.value = Math.round(gain * 100);
+    volOut.textContent = Math.round(gain * 100) + '%';
   }
-  volInput.addEventListener('input', () => { volume = Number(volInput.value) / 100; applyVolume(); });
+  volInput.addEventListener('input', () => { gain = Number(volInput.value) / 100; applyVolume(); });
   volInput.addEventListener('change', () => {
-    store.set(VOL_KEY, String(volume));
-    if (soundOn && volume > 0) { try { wololo.currentTime = 0; wololo.play().catch(() => {}); } catch (e) { /* ignore */ } }
+    store.set(VOL_KEY, String(gain));
+    if (soundOn && gain > 0) drop();
   });
   applyVolume();
 
@@ -908,7 +986,7 @@
   soundBtn.addEventListener('click', () => {
     soundOn = !soundOn;
     store.set(SOUND_KEY, soundOn ? 'on' : 'off');
-    if (!soundOn) audio.pause();
+    if (!soundOn) stopAll();
     paintSound();
   });
   paintSound();
@@ -925,7 +1003,7 @@
   let bannerTimer;
   function celebrate(lines) {
     if (soundOn) {
-      try { audio.pause(); audio.currentTime = 0; audio.play().catch(() => {}); } catch (e) { /* ignore */ }
+      play('win');
     }
     showBanner('¡BINGO!', lines.length > 1 ? lines.length + ' líneas a la vez' : lineName(lines[0]));
     if (!reduceMotion) confetti();
