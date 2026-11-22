@@ -362,6 +362,30 @@
     display: block;
     font: 900 clamp(3.6rem, 17vw, 9rem)/1 var(--font-display);
   }
+  .plate img {
+    display: block;
+    width: clamp(130px, 38vw, 210px);
+    height: auto;
+    margin: .5rem auto .2rem;
+    border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+  }
+  /* full-screen photo mode */
+  .plate.full {
+    width: min(90vw, calc((96vh - 4.2rem) * .726));
+    padding: 8px 8px 8px;
+  }
+  .plate.full { display: flex; flex-direction: column; container-type: inline-size; }
+  .plate.full b { order: -1; font-size: 9cqw; line-height: 1.1; white-space: nowrap; padding: .02em 0 .12em; }
+  .plate.full img {
+    width: 100%;
+    aspect-ratio: 480 / 661;
+    object-fit: cover;
+    margin: 0;
+    border-radius: 6px;
+    box-shadow: none;
+  }
+  .plate.full span { display: none; }
   .plate span:empty { display: none; }
   .plate:has(span:empty) { padding-bottom: .12em; }
   .plate span {
@@ -448,7 +472,7 @@
 </dialog>
 
 <div class="banner" id="banner" aria-live="polite">
-  <div class="plate"><b id="banner-title">¡BINGO!</b><span id="banner-sub"></span></div>
+  <div class="plate"><img id="banner-photo" src="bingo.jpg" alt="" hidden><b id="banner-title">¡BINGO!</b><span id="banner-sub"></span></div>
 </div>
 
 <div class="toast" id="toast" role="status"></div>
@@ -1005,11 +1029,13 @@
     if (soundOn) {
       play('win');
     }
-    showBanner('¡BINGO!', lines.length > 1 ? lines.length + ' líneas a la vez' : lineName(lines[0]));
+    showBanner('COMBO HISTÓRICO', '', true);
     if (!reduceMotion) confetti();
   }
 
-  function showBanner(title, sub) {
+  function showBanner(title, sub, photo) {
+    $('#banner-photo').hidden = !photo;
+    $('.plate').classList.toggle('full', !!photo);
     $('#banner-title').textContent = title;
     bannerSub.textContent = sub;
     banner.classList.remove('show');

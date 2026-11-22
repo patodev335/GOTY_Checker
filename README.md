@@ -5,7 +5,7 @@ Un cartón de bingo para la noche de los premios. Cada persona escribe sus predi
 ## Publicarlo con GitHub Pages
 
 1. Creá un repositorio público nuevo en GitHub.
-2. Subí `index.html`, `logo.png`, `1.mp3`, `bond.mp3` y `wololo.mp3` a la raíz del repo (con esos nombres exactos).
+2. Subí `index.html`, `logo.png`, `1.mp3`, `bond.mp3`, `wololo.mp3` y `bingo.jpg` a la raíz del repo (con esos nombres exactos).
 3. Andá a **Settings → Pages**. En **Build and deployment** elegí **Deploy from a branch**, seleccioná `main` y `/ (root)`, y guardá.
 4. Al minuto el sitio queda online en `https://TU-USUARIO.github.io/NOMBRE-DEL-REPO/`.
 
@@ -17,6 +17,7 @@ Un cartón de bingo para la noche de los premios. Cada persona escribe sus predi
 - **Editar casillas** activa el modo edición: tocá una casilla para cambiarla o eliminarla.
 - El campo **Ancho** (arriba) define cuántas casillas tiene la grilla por lado, de 2 a 10.
 - Una línea cuenta solo si todas sus casillas están completas y tachadas.
+- Al completar una línea (fila, columna o diagonal) aparece la foto `bingo.jpg` a pantalla casi completa con el texto "COMBO HISTÓRICO".
 - Si tachás una casilla pegada a otra ya tachada (de lado o en diagonal), aparece "¡COMBO!" con su sonido.
 - Sin configurar nada, cada cartón se guarda solo en el navegador de cada persona. Para que **todos compartan el mismo cartón** (con sus colores únicos), seguí los pasos de abajo.
 - El botón de sonido silencia el sonido de victoria.
